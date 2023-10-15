@@ -1,21 +1,34 @@
-version: '3'
+version: '3.7'
 services:
   dind:
     image: docker:dind
     privileged: true
+    network_mode: jenkins
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - docker-certs-ca:/certs/ca
+      - docker-certs-client:/certs/client
+      - jenkins-data:/var/jenkins_home
 
   jenkins:
-    image: jenkins/jenkins:lts
+    image: jenkins/jenkins:lts-jdk11
+    network_mode: jenkins
+    user: root
     environment:
-      - DOCKER_HOST=tcp://dind:2375
+      DOCKER_HOST: tcp://dind:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: '1'
     ports:
-      - 8080:8080
+      - '8080:8080'
+      - '50000:50000'
     volumes:
-      - jenkins_home:/var/jenkins_home
-    depends_on:
-      - dind
+      - docker-certs-client:/certs/client:ro
+      - jenkins-data:/var/jenkins_home
+      - /usr/bin/docker:/usr/bin/docker
 
 volumes:
-  jenkins_home:
+  docker-certs-ca:
+  docker-certs-client:
+  jenkins-data:
+
